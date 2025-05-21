@@ -1,0 +1,18 @@
+# System junk
+.DS_Store
+Thumbs.db
+
+# Logs and backups
+*.log
+*.bak
+
+# Cookies and accounts (very sensitive)
+accounts.json
+
+# Chrome extension dev
+*.pem
+*.crx
+
+# Node junk (if used later)
+node_modules/
+dist/
