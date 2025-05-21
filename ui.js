@@ -1,4 +1,5 @@
-// File: ui.js
+// ui.js
+
 const startBtn = document.getElementById('startBtn');
 const stopBtn = document.getElementById('stopBtn');
 const logEl = document.getElementById('log');
@@ -8,14 +9,14 @@ let running = false;
 
 function log(msg) {
   const time = new Date().toLocaleTimeString();
-  logEl.innerHTML += `[${time}] ${msg}<br>`;
+  logEl.textContent += `[${time}] ${msg}\n`;
   logEl.scrollTop = logEl.scrollHeight;
 }
 
-startBtn.onclick = async () => {
+startBtn.onclick = () => {
   const url = targetUrlInput.value.trim();
   if (!url) {
-    alert("Please enter a Facebook profile URL.");
+    alert("Please enter a valid Facebook profile URL.");
     return;
   }
   if (running) {
@@ -29,7 +30,7 @@ startBtn.onclick = async () => {
 
   log(`Starting report cycle on: ${url}`);
 
-  chrome.runtime.sendMessage({ action: 'startReporting', targetUrl: url });
+  chrome.runtime.sendMessage({ action: 'startReporting', profileUrl: url });
 };
 
 stopBtn.onclick = () => {
@@ -39,10 +40,3 @@ stopBtn.onclick = () => {
   log("Reporting stopped.");
   chrome.runtime.sendMessage({ action: 'stopReporting' });
 };
-
-// Listen for logs from background script
-chrome.runtime.onMessage.addListener((request) => {
-  if (request.type === 'log') {
-    log(request.message);
-  }
-});
