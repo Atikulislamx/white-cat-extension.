@@ -1,0 +1,25 @@
+<!-- File: ui.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>White Cat Control Panel</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 10px; background: #111; color: #eee; }
+    button { margin: 5px; padding: 10px 15px; background: #4CAF50; border: none; color: white; cursor: pointer; }
+    button:disabled { background: #555; cursor: not-allowed; }
+    #log { background: #222; height: 150px; overflow-y: auto; padding: 10px; border-radius: 4px; font-family: monospace; }
+  </style>
+</head>
+<body>
+  <h2>White Cat v3.3</h2>
+  <input id="targetUrl" type="text" placeholder="Enter Facebook profile URL" style="width: 100%; padding: 8px;" />
+  <br />
+  <button id="startBtn">Start Reporting</button>
+  <button id="stopBtn" disabled>Stop</button>
+  <h3>Logs</h3>
+  <div id="log"></div>
+
+  <script src="ui.js"></script>
+</body>
+</html>
