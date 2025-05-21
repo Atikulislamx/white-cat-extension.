@@ -1,68 +1,93 @@
-// background.js
+const VALID_SAMESITE = ["no_restriction", "lax", "strict", "unspecified"];
 
-import { injectCookies, validateSession } from './cookieUtils.js';
-import { log, error } from './utils/logger.js';
-
-const REPORT_DELAY = 10000; // 10 seconds delay between reports
-
-async function applyProxy(proxy) {
-  // Placeholder for proxy application logic
-  if(proxy) {
-    log(`Proxy set to ${proxy} (implement proxy handling here)`);
+// Helper: Sanitize cookie for Manifest V3
+function sanitizeCookie(cookie) {
+  const clean = { ...cookie };
+  if (!VALID_SAMESITE.includes(clean.sameSite)) {
+    console.warn(`[WhiteCat FIX] Invalid sameSite "${clean.sameSite}" for cookie "${clean.name}", defaulting to "no_restriction".`);
+    clean.sameSite = "no_restriction";
   }
+  return clean;
 }
 
-async function openTargetAndReport(targetUrl) {
-  try {
-    const tab = await chrome.tabs.create({ url: targetUrl, active: false });
-    log(`Opened target tab: ${targetUrl}`);
-
-    // Wait for page to load fully (simple fixed wait here; can be improved)
-    await new Promise(r => setTimeout(r, 5000));
-
-    // TODO: Insert reporting logic here (e.g. content script messaging)
-    log(`Reported on target in tabId: ${tab.id}`);
-
-    // Close tab after report
-    await chrome.tabs.remove(tab.id);
-    log(`Closed tabId: ${tab.id}`);
-  } catch (e) {
-    error(`Error opening/reporting on target: ${e.message}`);
-  }
-}
-
-async function launchWhiteCat(targetUrl) {
-  try {
-    const response = await fetch(chrome.runtime.getURL('accounts.json'));
-    const accounts = await response.json();
-
-    for (const account of accounts) {
-      log(`--- Testing session for ${account.name} ---`);
-
-      await applyProxy(account.proxy);
-      await injectCookies(account.cookies);
-
-      const valid = await validateSession();
-      if (!valid) {
-        error(`${account.name} has INVALID session. Skipping...`);
-        continue;
-      }
-
-      log(`Valid session. Launching attack with ${account.name}`);
-      await openTargetAndReport(targetUrl);
-
-      await new Promise(r => setTimeout(r, REPORT_DELAY));
+// Inject cookies for each account
+function setCookiesForAllAccounts() {
+  chrome.storage.local.get("accounts", (data) => {
+    const accounts = data.accounts || [];
+    if (accounts.length === 0) {
+      console.log("[WhiteCat] No accounts stored.");
+      return;
     }
 
-    log('Strike cycle completed.');
-  } catch (e) {
-    error(`Launch failed: ${e.message}`);
-  }
+    accounts.forEach((account, index) => {
+      if (!Array.isArray(account.cookies)) return;
+
+      account.cookies.forEach((cookie) => {
+        const c = sanitizeCookie(cookie);
+        chrome.cookies.set(c, () => {
+          if (chrome.runtime.lastError) {
+            console.error(`[WhiteCat ERROR] Failed to set cookie ${c.name}:`, chrome.runtime.lastError.message);
+          } else {
+            console.log(`[WhiteCat] Set cookie for Account #${index + 1}: ${c.name}`);
+          }
+        });
+      });
+    });
+  });
 }
 
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.command === 'start-attack' && message.targetUrl) {
-    launchWhiteCat(message.targetUrl);
-    sendResponse({ status: 'started' });
-  }
+// Auto-detect logged-in Facebook account and store it
+function autoDetectAndStoreActiveFacebookSession() {
+  chrome.cookies.getAll({ domain: ".facebook.com" }, (cookies) => {
+    const required = ["c_user", "xs", "fr"];
+    const hasAll = required.every(name => cookies.some(c => c.name === name));
+    if (!hasAll) {
+      console.log("[WhiteCat] No active Facebook session found.");
+      return;
+    }
+
+    const structuredCookies = cookies.map(cookie => sanitizeCookie({
+      domain: cookie.domain,
+      expirationDate: cookie.expirationDate,
+      hostOnly: cookie.hostOnly,
+      httpOnly: cookie.httpOnly,
+      name: cookie.name,
+      path: cookie.path,
+      sameSite: VALID_SAMESITE.includes(cookie.sameSite) ? cookie.sameSite : "no_restriction",
+      secure: cookie.secure,
+      session: cookie.session,
+      storeId: cookie.storeId,
+      value: cookie.value
+    }));
+
+    const newAccount = { cookies: structuredCookies };
+
+    chrome.storage.local.get("accounts", (data) => {
+      const accounts = data.accounts || [];
+      const isDuplicate = accounts.some(acc =>
+        acc.cookies.some(c => c.name === "c_user" && structuredCookies.find(sc => sc.name === "c_user" && sc.value === c.value))
+      );
+
+      if (!isDuplicate) {
+        accounts.push(newAccount);
+        chrome.storage.local.set({ accounts }, () => {
+          console.log("[WhiteCat] Active Facebook account auto-saved to accounts.");
+        });
+      } else {
+        console.log("[WhiteCat] Facebook session already in accounts.");
+      }
+    });
+  });
+}
+
+// Event: on installed
+chrome.runtime.onInstalled.addListener(() => {
+  console.log("[WhiteCat] Extension installed.");
+});
+
+// Event: on startup
+chrome.runtime.onStartup.addListener(() => {
+  console.log("[WhiteCat] Extension started.");
+  setCookiesForAllAccounts();
+  autoDetectAndStoreActiveFacebookSession();
 });
