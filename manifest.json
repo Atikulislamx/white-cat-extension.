@@ -1,4 +1,3 @@
-// File: manifest.json
 {
   "manifest_version": 3,
   "name": "White Cat Extension",
@@ -15,7 +14,8 @@
     "https://*.facebook.com/*"
   ],
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "background.js",
+    "type": "module"
   },
   "action": {
     "default_popup": "ui.html",
