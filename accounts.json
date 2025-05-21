@@ -1,0 +1,12 @@
+[
+  {
+    "name": "main_account",
+    "cookies": "c_user=61557050395158; xs=38%3A_cZ5YC7OYfIrYg%3A2%3A1737302341%3A-1%3A5149; ...",
+    "proxy": "http://user:pass@proxyserver:port"
+  },
+  {
+    "name": "backup_account",
+    "cookies": "c_user=10000000000002; xs=abc123xyz; ...",
+    "proxy": ""
+  }
+]
