@@ -1,34 +1,43 @@
-// File: cookieUtils.js
+// cookieUtils.js
 
-export async function injectCookies(cookieString) {
-  const cookies = cookieString.split("; ");
-  for (const cookie of cookies) {
-    const [name, value] = cookie.split("=");
-    await chrome.cookies.set({
-      url: "https://www.facebook.com",
-      name,
-      value,
-      domain: ".facebook.com",
-      path: "/",
-      secure: true,
-      httpOnly: false,
-      sameSite: "Lax"
-    });
-    await sleep(100); // Avoid rate limits
+function error(msg) {
+  console.error('[WhiteCat ERROR] ' + msg);
+}
+
+async function injectCookies(account) {
+  if (!account.cookies || !Array.isArray(account.cookies)) {
+    error('No cookies found for account: ' + account.username);
+    return;
+  }
+  for (const cookie of account.cookies) {
+    try {
+      await chrome.cookies.set({
+        url: 'https://facebook.com',
+        name: cookie.name,
+        value: cookie.value,
+        domain: '.facebook.com',
+        path: '/',
+        secure: true,
+        httpOnly: false,
+        sameSite: 'Lax'
+      });
+    } catch (e) {
+      error(`Failed to set cookie ${cookie.name}: ${e.message}`);
+    }
   }
 }
 
-export async function validateSession() {
-  const checkUrl = "https://www.facebook.com/me";
+async function validateSession(account) {
   try {
-    const resp = await fetch(checkUrl, { credentials: "include" });
-    const text = await resp.text();
-    return text.includes("id=\"pagelet_timeline_main_column\"") || text.includes("/profile_picture/");
+    await injectCookies(account);
+    const response = await fetch('https://www.facebook.com/me', {
+      credentials: 'include',
+      cache: 'no-store'
+    });
+    const html = await response.text();
+    return html.includes('Logout') || html.includes('log out');
   } catch (e) {
+    error('Validation failed: ' + e.message);
     return false;
   }
-}
-
-function sleep(ms) {
-  return new Promise(res => setTimeout(res, ms));
 }
