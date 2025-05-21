@@ -1,37 +1,34 @@
 {
   "manifest_version": 3,
-  "name": "White Cat Extension",
+  "name": "White Cat v3.3",
   "version": "3.3",
-  "description": "Stealth Facebook fake profile reporting tool.",
+  "description": "Advanced Facebook fake profile reporting tool.",
   "permissions": [
     "cookies",
     "tabs",
     "scripting",
-    "storage",
-    "downloads"
+    "storage"
   ],
   "host_permissions": [
     "https://*.facebook.com/*"
   ],
   "background": {
-    "service_worker": "background.js",
-    "type": "module"
+    "service_worker": "background.js"
   },
   "action": {
     "default_popup": "ui.html",
     "default_icon": {
+      "16": "icons/icon16.png",
       "48": "icons/icon48.png",
       "128": "icons/icon128.png"
     }
   },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self';"
+  },
   "icons": {
+    "16": "icons/icon16.png",
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
-  },
-  "web_accessible_resources": [
-    {
-      "resources": ["panel.html"],
-      "matches": ["<all_urls>"]
-    }
-  ]
+  }
 }
